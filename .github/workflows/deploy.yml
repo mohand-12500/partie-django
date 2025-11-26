@@ -1,26 +1,59 @@
-name: Deploy Django to Render
+# name: Deploy Django to Render
+
+# on:
+#   push:
+#     branches: [ master ]
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - uses: actions/checkout@v3
+
+#       - name: Set up Python
+#         uses: actions/setup-python@v4
+#         with:
+#           python-version: '3.10'
+
+#       - name: Install dependencies
+#         run: pip install -r requirements.txt
+
+#       - name: Deploy to Render
+#         uses: johnbeynon/render-deploy-action@v0.0.8
+#         with:
+#           service-id: ${{ secrets.SERVICE_ID }}
+#           api-key: ${{ secrets.RENDER_API_KEY }}
+name: Deploy Django with Docker
 
 on:
   push:
     branches: [ master ]
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
         with:
-          python-version: '3.10'
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: Build Docker image
+        run: docker build -t myusername/mydjangoapp:latest .
 
+      - name: Push Docker image
+        run: docker push myusername/mydjangoapp:latest
+
+      # Optionnel: déployer sur Render via l'image Docker
       - name: Deploy to Render
-        uses: johnbeynon/render-deploy-action@v0.0.8
-        with:
-          service-id: ${{ secrets.SERVICE_ID }}
-          api-key: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          curl -X POST \
+          -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d '{"serviceId": "${{ secrets.SERVICE_ID }}"}' \
+          https://api.render.com/deploy/srv-xxxxxx
